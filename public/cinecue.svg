@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Clean, curved background matching our logo structure using Warm Editorial Primary -->
+  <rect width="100" height="100" rx="30" fill="#C84B31"/>
+  
+  <!-- Film Icon using Warm Editorial Secondary -->
+  <g fill="none" stroke="#ECDBBA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" transform="translate(20, 20) scale(2.5)">
+    <rect width="18" height="18" x="3" y="3" rx="2"/>
+    <path d="M7 3v18"/>
+    <path d="M3 7.5h4"/>
+    <path d="M3 12h18"/>
+    <path d="M3 16.5h4"/>
+    <path d="M17 3v18"/>
+    <path d="M17 7.5h4"/>
+    <path d="M17 16.5h4"/>
+  </g>
+
+  <!-- Sparkle Icon using Warm Editorial Secondary -->
+  <g transform="translate(68, 12) scale(1)">
+    <path fill="#ECDBBA" d="M10.125 10.125L10 0l-.125 10.125L0 10l10.125.125L10 20l.125-10.125L20 10l-9.875-.125z"/>
+  </g>
+</svg>
