@@ -1,61 +1,66 @@
-# 🎬 CineCue
+# CineCue
+Transform the endless scrolling of streaming platforms into perfectly curated, mood-based movie nights.
 
-CineCue is a stunning, cinematic movie recommendation engine designed to answer the hardest question of the night: *"What are we watching?"* 
+## Features
+*   **Vibe-Based Curation**: Automatically maps abstract moods ("Dark & Gritty", "Wholesome & Feel-Good") to optimal TMDB genre combinations.
+*   **True Streaming Filters**: Intelligent API fetching specifically filters out paid rentals so you only see movies included for free in your subscriptions.
+*   **Adaptive Theming**: Choose your personalized cinematic interface: Warm Editorial, Forest Green, or Deep Space aesthetics.
+*   **Smart State Memory**: Automatically remembers your streaming platforms and favorite eras using LocalStorage, so your setup is saved natively.
+*   **Dynamic UI**: Fully responsive glass-morphic architecture, complete with an adaptive sticky mobile header and auto-collapsing UI tags.
 
-By cutting through the noise of endless scrolls across a gazillion, CineCue directly curates perfect movies based exclusively on the streaming platforms you actually pay for, the era of film you want, and the exact mood you are in.
+## Quick Start
+Clone and install:
 
-![CineCue Screenshot](public/cinecue.svg)
-
-## ✨ The CineCue Experience
-
-*   **Vibe-Based Curation:** Not sure what genre you want? Just pick a mood. Whether you're feeling *"Wholesome & Feel-Good"*, *"Dark & Gritty"*, or just want *"Mind-Bending"* twists, the TMDB filtering engine cross-references negative and positive genres behind the scenes to find a mathematically perfect match.
-*   **True Streaming Filters:** Built-in streaming intelligence filters out rentals and paid VOD. Tell CineCue you only have *Netflix*, *Max*, and *Apple TV+*, and you will never see a movie you have to pay $3.99 to unlock.
-*   **Adaptive Theming:** Personalize your interface. Toggle instantly between the elegant **Warm Editorial**, the deep mossy **Forest Green**, or the dramatic **Deep Space** UI paradigms.
-*   **Smart State Memory:** CineCue learns you. Through LocalStorage, the engine remembers your platform subscriptions, favorite release eras, and tracks every movie you interact with across your sessions.
-*   **Cinematic Design:** Built entirely on modern glass-morphic principles, CineCue functions less like a web app and more like a native media center—complete with responsive sticky mobile headers, auto-collapsing platform tags, and beautifully rendered film posters.
-
-## 🚀 Tech Stack
-
-*   **Frontend Library:** React (Vite)
-*   **Styling:** Custom Vanilla CSS (Variables, Theme Support, Complex SVGs)
-*   **Icons:** [Lucide React](https://lucide.dev/)
-*   **Backend / Data Engine:** [The Movie Database (TMDB) API](https://developer.themoviedb.org/docs/getting-started) 
-
-## ⚙️ Getting Started
-
-Want to run CineCue locally? Follow these steps:
-
-### 1. Clone the repository
 ```bash
 git clone https://github.com/legacyindeed/Cinecue.git
 cd Cinecue
-```
-
-### 2. Install Dependencies
-```bash
 npm install
 ```
 
-### 3. Configure TMDB API Key
-CineCue requires an active API Key from TMDB to ping their incredibly fast movie database. 
-1. Create a free account at [TMDB](https://www.themoviedb.org/).
-2. Request an API Key from your account settings.
-3. In the root directory of your cloned project, rename the `.env.example` file to `.env`.
-4. Paste your key into the file:
-```env
-VITE_TMDB_API_KEY=your_tmdb_api_key_here
+Set up API keys:
+
+```bash
+cp .env.example .env
+# Edit .env with your TMDB key
 ```
 
-### 4. Ignite the Engine
+Ignite the Engine:
+
 ```bash
 npm run dev
 ```
 
-Your local instance of CineCue is now running at `http://localhost:5173`. Grab some popcorn. 🍿
+## Getting API Keys
+### TMDB API (Free)
+1. Go to [The Movie Database (TMDB)](https://www.themoviedb.org/) and create a free account.
+2. Navigate to your Account Settings → API.
+3. Request an API Key as a Developer.
+4. Copy your `v3 auth` key into `.env` under `VITE_TMDB_API_KEY=`
 
-## 🤝 Contributing
+## Known Issues & Solutions
+This project documents several TMDB API quirks:
 
-Have an idea for a new mood, or a feature request? Open up an Issue or a Pull Request and let's make CineCue even better!
+| Problem | Solution |
+| --- | --- |
+| Rental movies appearing in feed | Append `&with_watch_monetization_types=flatrate` to the discover query |
+| Unrelated genres sneaking in (e.g., Action in Horror) | Implement a dedicated `without_genres` exclusions array in the mood config |
+| Apple TV generating 0 results despite high catalog | Map TMDB provider ID 350 to both Apple TV+ *and* iTunes Store (ID 2) |
+| Missing metadata in API payloads | Switch from simple `/search` endpoint to the robust `/discover/movie` engine |
 
----
-*Built with ❤️ utilizing the [TMDB API](https://www.themoviedb.org/)*
+## Project Structure
+```text
+├── src/                  
+│   ├── App.jsx           # Core Engine & Main React UI
+│   ├── App.css           # Component Scoped Styles & Layout Maps
+│   └── index.css         # Global Styles & Complete CSS Theme Architecture
+├── public/               
+│   └── cinecue.svg       # Custom rendered SVG Vector Logo
+├── .env                  # Your API keys (not committed)
+├── .env.example          # Blank template for git cloning
+└── package.json          # Node dependencies (Vite, React, Lucide)
+```
+
+## License
+MIT - Use freely, modify as needed.
+
+Built utilizing the **TMDB API**.
