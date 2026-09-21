@@ -149,58 +149,104 @@ export default function App() {
     }
   };
 
+  // Tracks TMDB pagination so "Refresh Vibe" can pull genuinely new results
+  // instead of re-cycling the same cached batch.
+  const nextPageRef = useRef(3);
+  const totalPagesRef = useRef(Infinity);
+
+  const buildDiscoverUrl = (page) => {
+    const moodConfig = MOODS.find(m => m.id === selectedMood);
+    const genreString = moodConfig ? moodConfig.genres.join('|') : '';
+
+    let url = `${TMDB_BASE_URL}/discover/movie?api_key=${API_KEY}&language=en-US&sort_by=popularity.desc&watch_region=US&with_watch_monetization_types=flatrate|rent|buy&page=${page}`;
+
+    if (genreString) {
+      url += `&with_genres=${genreString}`;
+    }
+    if (moodConfig && moodConfig.withoutGenres) {
+      url += `&without_genres=${moodConfig.withoutGenres.join(',')}`;
+    }
+
+    if (selectedServices.length > 0) {
+      const providerIds = selectedServices.map(s => PROVIDERS[s]).join('|');
+      url += `&with_watch_providers=${providerIds}`;
+    }
+
+    let dateGte, dateLte;
+    if (selectedTimeRange === 'last_year') {
+      dateGte = '2025-01-01';
+    } else if (selectedTimeRange === '2020_2025') {
+      dateGte = '2020-01-01'; dateLte = '2025-12-31';
+    } else if (selectedTimeRange === '2015_2019') {
+      dateGte = '2015-01-01'; dateLte = '2019-12-31';
+    } else if (selectedTimeRange === '2010_2014') {
+      dateGte = '2010-01-01'; dateLte = '2014-12-31';
+    } else if (selectedTimeRange === '2000_2009') {
+      dateGte = '2000-01-01'; dateLte = '2009-12-31';
+    } else if (selectedTimeRange === 'pre_2000') {
+      dateLte = '1999-12-31';
+    }
+
+    if (dateGte) url += `&primary_release_date.gte=${dateGte}`;
+    if (dateLte) url += `&primary_release_date.lte=${dateLte}`;
+
+    return url;
+  };
+
+  // Fetches the next TMDB page and merges any new movies into apiMovies.
+  // Returns true if it added at least one new movie.
+  const fetchMoreMovies = async () => {
+    if (nextPageRef.current > totalPagesRef.current) return false;
+
+    try {
+      const res = await fetchTMDB(buildDiscoverUrl(nextPageRef.current));
+      const data = await res.json();
+      nextPageRef.current += 1;
+      totalPagesRef.current = data.total_pages || totalPagesRef.current;
+
+      const newResults = (data.results || []).filter(m => m.poster_path && m.overview);
+      if (newResults.length === 0) return false;
+
+      let addedAny = false;
+      setApiMovies(prev => {
+        const seenIds = new Set(prev.map(m => m.id));
+        const merged = [...prev];
+        for (const r of newResults) {
+          if (!seenIds.has(r.id)) {
+            merged.push(r);
+            seenIds.add(r.id);
+            addedAny = true;
+          }
+        }
+        return merged;
+      });
+      return addedAny;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  };
+
   // The actual TMDB API fetch effect
   useEffect(() => {
     if (!selectedMood) return;
 
     setCurrentBatchIndex(0);
+    nextPageRef.current = 3;
+    totalPagesRef.current = Infinity;
 
     const fetchMoviesFromApi = async () => {
       setIsLoading(true);
       try {
-        const moodConfig = MOODS.find(m => m.id === selectedMood);
-        const genreString = moodConfig ? moodConfig.genres.join('|') : '';
-
-        let url = `${TMDB_BASE_URL}/discover/movie?api_key=${API_KEY}&language=en-US&sort_by=popularity.desc&watch_region=US&with_watch_monetization_types=flatrate|rent|buy`;
-
-        if (genreString) {
-          url += `&with_genres=${genreString}`;
-        }
-        if (moodConfig && moodConfig.withoutGenres) {
-          url += `&without_genres=${moodConfig.withoutGenres.join(',')}`;
-        }
-
-        if (selectedServices.length > 0) {
-          const providerIds = selectedServices.map(s => PROVIDERS[s]).join('|');
-          url += `&with_watch_providers=${providerIds}`;
-        }
-
-        let dateGte, dateLte;
-        if (selectedTimeRange === 'last_year') {
-          dateGte = '2025-01-01';
-        } else if (selectedTimeRange === '2020_2025') {
-          dateGte = '2020-01-01'; dateLte = '2025-12-31';
-        } else if (selectedTimeRange === '2015_2019') {
-          dateGte = '2015-01-01'; dateLte = '2019-12-31';
-        } else if (selectedTimeRange === '2010_2014') {
-          dateGte = '2010-01-01'; dateLte = '2014-12-31';
-        } else if (selectedTimeRange === '2000_2009') {
-          dateGte = '2000-01-01'; dateLte = '2009-12-31';
-        } else if (selectedTimeRange === 'pre_2000') {
-          dateLte = '1999-12-31';
-        }
-
-        if (dateGte) url += `&primary_release_date.gte=${dateGte}`;
-        if (dateLte) url += `&primary_release_date.lte=${dateLte}`;
-
         // Fetch top 2 pages of results to have enough data to sort via ML locally
         const responses = await Promise.all([
-          fetchTMDB(url + '&page=1'),
-          fetchTMDB(url + '&page=2')
+          fetchTMDB(buildDiscoverUrl(1)),
+          fetchTMDB(buildDiscoverUrl(2))
         ]);
 
         const data1 = await responses[0].json();
         const data2 = await responses[1].json();
+        totalPagesRef.current = data1.total_pages || Infinity;
 
         let results = [...(data1.results || []), ...(data2.results || [])];
 
@@ -228,6 +274,7 @@ export default function App() {
     };
 
     fetchMoviesFromApi();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMood, selectedTimeRange, selectedServices]);
 
   // Sort and Enrich movies whenever apiMovies, preferences, or currentBatchIndex changes
@@ -264,7 +311,7 @@ export default function App() {
             movie.services = usProviders
               .map(p => p.provider_name)
               .filter(name => AVAILABLE_SERVICES.some(validService => name.includes(validService) || validService.includes(name)));
-          } catch (e) {
+          } catch {
             movie.services = [];
           }
 
@@ -307,6 +354,24 @@ export default function App() {
       : `Liked ${movie.title} !Adapting recommendations...`;
 
     showToast(message);
+  };
+
+  const handleRefreshVibe = async () => {
+    // If we already have unshown movies cached locally, just page to them.
+    if ((currentBatchIndex + 1) * 5 < apiMovies.length) {
+      setCurrentBatchIndex(prev => prev + 1);
+      return;
+    }
+
+    // Otherwise go back to TMDB for a fresh page before cycling.
+    setIsLoading(true);
+    const gotMore = await fetchMoreMovies();
+    if (gotMore) {
+      setCurrentBatchIndex(prev => prev + 1);
+    } else {
+      showToast("You've seen every match for this vibe — starting over!");
+      setCurrentBatchIndex(0);
+    }
   };
 
   const selectedEraLabel = TIME_RANGES.find(r => r.id === selectedTimeRange)?.label || 'Any Era';
@@ -458,13 +523,7 @@ export default function App() {
                   className="btn-icon"
                   title="Refresh Vibe"
                   style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}
-                  onClick={() => {
-                    if ((currentBatchIndex + 1) * 5 >= apiMovies.length) {
-                      setCurrentBatchIndex(0);
-                    } else {
-                      setCurrentBatchIndex(prev => prev + 1);
-                    }
-                  }}
+                  onClick={handleRefreshVibe}
                 >
                   <RefreshCw size={20} className="glow-text-primary" />
                 </button>
