@@ -163,9 +163,6 @@ export default function App() {
     if (genreString) {
       url += `&with_genres=${genreString}`;
     }
-    if (moodConfig && moodConfig.withoutGenres) {
-      url += `&without_genres=${moodConfig.withoutGenres.join(',')}`;
-    }
 
     if (selectedServices.length > 0) {
       const providerIds = selectedServices.map(s => PROVIDERS[s]).join('|');
@@ -232,23 +229,25 @@ export default function App() {
     if (!selectedMood) return;
 
     setCurrentBatchIndex(0);
-    nextPageRef.current = 3;
+    nextPageRef.current = 4;
     totalPagesRef.current = Infinity;
 
     const fetchMoviesFromApi = async () => {
       setIsLoading(true);
       try {
-        // Fetch top 2 pages of results to have enough data to sort via ML locally
+        // Fetch top 3 pages of results to have enough data to sort via ML locally
         const responses = await Promise.all([
           fetchTMDB(buildDiscoverUrl(1)),
-          fetchTMDB(buildDiscoverUrl(2))
+          fetchTMDB(buildDiscoverUrl(2)),
+          fetchTMDB(buildDiscoverUrl(3))
         ]);
 
         const data1 = await responses[0].json();
         const data2 = await responses[1].json();
+        const data3 = await responses[2].json();
         totalPagesRef.current = data1.total_pages || Infinity;
 
-        let results = [...(data1.results || []), ...(data2.results || [])];
+        let results = [...(data1.results || []), ...(data2.results || []), ...(data3.results || [])];
 
         // Ensure they have valid posters and overviews
         results = results.filter(m => m.poster_path && m.overview);
